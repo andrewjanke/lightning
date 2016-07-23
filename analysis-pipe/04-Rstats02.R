@@ -1,7 +1,8 @@
 ### Load necessary libraries (all CRAN libraries can be acquired using install.packages)
 library(compiler)
 library(AnalyzeFMRI)
-
+#library(ggplot2)
+#library(reshape2)
 library(MASS)
 library(abind)
 library(fda)
@@ -17,6 +18,7 @@ library(capushe)
 library(Rcpp)
 library(RcppEigen)
 library(RcppArmadillo)
+
 #needs to be c++ 11 because I used the tuple class
 Sys.setenv("PKG_CXXFLAGS"="-std=c++11")
 if(file.exists('./bin/tkmeans.cpp')){sourceCpp('./bin/tkmeans.cpp')} #for testing
@@ -365,8 +367,7 @@ image.plot(1:Y_SIZE,1:X_SIZE,image_hold[Z_SIZE,,])
  max_file <- max(file_number)
 file_number <- (file_number-1)*Z_SIZE + ss
 Basis_number <- Basis_number
-Basis <- create.bspline.basis(c(0,(max_file-1)*Z_SIZE+Z_SIZE),
-                               nbasis=Basis_number)
+Basis <- create.bspline.basis(c(0,(max_file-1)*Z_SIZE+Z_SIZE),nbasis=Basis_number)
 BS <- eval.basis(file_number,Basis)
 # Compute the mean time series
 centers <- clustering
@@ -595,26 +596,37 @@ print("Analysis done and saved. Producing and saving plots.")
 #also graph here  with gggplot2
 
 
-# # Graph the Mean functions
-# for (cc in 1:comp) {
-#   pdf(paste(indir,'/Cluster_Mean_Function_',cc,'.pdf',sep=''),paper='a4r')
-#   plot(seq(1,((max_file-1)*Z_SIZE+Z_SIZE),1000),PRED[cc,],type='l',xlab='Time',ylab='signal',main=cc)
-#   dev.off()
-# }
+# Graph the Mean functions
+for (cc in 1:comp) {
+  pdf(paste(indir,'/Cluster_Mean_Function_',cc,'.pdf',sep=''),paper='a4r')
+  plot(seq(1,((max_file-1)*Z_SIZE+Z_SIZE),1000),PRED[cc,],type='l',xlab='Time',ylab='signal',main=cc)
+  dev.off()
+}
 
+##R version issue here
+# pred.df<-data.frame(t(PRED))
+# names(pred.df) <- paste0("Cluster ", 1:comp)
+# pred.df$Time<-seq(0,dim(PRED)[2]-1,1)
+# pred.df.flat<-melt(pred.df, id='Time')
+# pred.df.flat$Signal<-pred.df.flat$value
+# 
+# pdf(paste(indir,'/All_Cluster_Mean_Function.pdf',sep=''),paper='a4')
+# ggplot(data=pred.df.flat)+geom_line(aes(y=Signal, x=Time))+facet_wrap(~variable)+theme_bw()
+# dev.off()
 
 # Plot the Correlation matrix
 pdf(paste(indir,'/Correlation_matrix.pdf',sep=''),paper='a4r')
 image.plot(1:comp,1:comp,CORR)
 dev.off()
 
-
-print("04-Rstats02.R complete.")
-
 # Hierachical Clustering ------------------------------
 # # Make a distance metric
-# DIST <- as.dist(1-t(CORR))
-# HCLUST <- hclust(DIST,method='average')
+DIST <- as.dist(1-t(CORR))
+HCLUST <- hclust(DIST,method='average')
+pdf(paste(indir,'/Cluster_dendrogram.pdf',sep=''),paper='a4r')
+plot(HCLUST)
+dev.off()
+
 # # 
 # # # Make tree cut using Dunn Index
 # #NB <- NbClust( diss=DIST,distance=NULL,method='average',index='silhouette',max.nc=ceiling(comp-2))
@@ -640,10 +652,10 @@ print("04-Rstats02.R complete.")
 #   dev.off()
 # }
 # 
-# # Plot Frequency Histogram
-# pdf(paste(indir,'/Frequency_of_clusters.pdf',sep=''),paper='a4r')
-# plot(table(clustering_cluster),xlab='cluster',ylab='Frequency')
-# dev.off()
+# Plot Frequency Histogram
+pdf(paste(indir,'/Frequency_of_clusters.pdf',sep=''),paper='a4r')
+plot(table(clustering_cluster),xlab='cluster',ylab='Frequency')
+dev.off()
 
 # # Plot K means by HCLUST reference
 # pdf(paste(indir,'/Cluster_by_HCLUST.pdf',sep=''),paper='a4r')
@@ -674,3 +686,4 @@ print("04-Rstats02.R complete.")
 #     dev.off()
 #   }
 # }
+print("04-Rstats02.R complete.")
